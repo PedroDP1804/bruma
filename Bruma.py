@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 #from selenium.webdriver.common.keys import Keys
@@ -20,7 +21,12 @@ from dotenv import dotenv_values
 
 # Config chrome driver
 service = Service(executable_path="chromedriver.exe")
-driver = webdriver.Chrome(service=service)
+options = Options()
+options.add_argument("--log-level=3")
+options.add_argument("--disable-notifications")
+options.add_argument("--disable-background-networking")
+options.add_argument("--disable-sync")
+driver = webdriver.Chrome(options=options, service=service)
 wait = WebDriverWait(driver, 3)
 actions = ActionChains(driver)
 
