@@ -6,10 +6,10 @@ from selenium.webdriver.common.action_chains import ActionChains
 #from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import os
+# import os
 import time
 import ctypes
-from twilio.rest import Client
+# from twilio.rest import Client
 from dotenv import dotenv_values
 
 
@@ -32,18 +32,18 @@ mandar_mensagem = True if (env["mandar_mensagem"] == "sim") else False
 abrir_janela = True if (env["abrir_janela"] == "sim") else False
 
 materias_de_interesse = {
+        "ENE0177":  {
+                        "nome":"ELETROMAGNETISMO 1",
+                        "turmas": [
+                            {"turma":"03", "professor":"TESTE", "confirmacao":True},
+                        ],
+        },
         "ENE0306":  {
                         "nome":"PRINCÍPIOS DE COMUNICAÇÃO",
-                        "turmas":
-                            [
-                                {"turma":"02", "professor":"TESTE", "confirmacao":True},
-                            ],
-                    }
-
-        # "LABORATÓRIO DE ELETRÔNICA": [
-        #     {"turma":"01", "professor":"ADSON FERREIRA DA ROCHA", "matricular":0},
-        # ],
-
+                        "turmas": [
+                            {"turma":"01", "professor":"TESTE", "confirmacao":True},
+                        ],
+        },
 }
 
 
@@ -54,18 +54,18 @@ materias_de_interesse = {
 
 
 # ----------------------------------- #
-def mandarMensagem(texto):
+# def mandarMensagem(texto):
 
-    client = Client(env["twilio_sid"], env["twilio_auth"])
-    try:
-        client.messages.create(
-            from_=f'whatsapp:{env["twilio_sender"]}',
-            body=texto,
-            to=f'whatsapp:{env["twilio_receiver"]}'
-        )
+#     client = Client(env["twilio_sid"], env["twilio_auth"])
+#     try:
+#         client.messages.create(
+#             from_=f'whatsapp:{env["twilio_sender"]}',
+#             body=texto,
+#             to=f'whatsapp:{env["twilio_receiver"]}'
+#         )
 
-    except Exception as e:
-        print(e)
+#     except Exception as e:
+#         print(e)
 # ----------------------------------- #
 
 
@@ -76,32 +76,32 @@ def janela(titulo:str, texto:str):
 
 
 # ----------------------------------- #
-def notificar(departamento, materia, index):
+# def notificar(departamento, materia, index):
     
-    turma = materias_de_interesse[departamento][materia][index]
+#     turma = materias_de_interesse[departamento][materia][index]
 
-    texto = f"A matéria {materia} tem vagas com o(a) professor(a) {turma['professor']}!!"
-    texto1 = f">>{turma['msgs_enviadas'] + 1}º Aviso: A matéria {materia} tem vagas com o(a) professor(a) {turma['professor']}!!"
+#     texto = f"A matéria {materia} tem vagas com o(a) professor(a) {turma['professor']}!!"
+#     texto1 = f">>{turma['msgs_enviadas'] + 1}º Aviso: A matéria {materia} tem vagas com o(a) professor(a) {turma['professor']}!!"
     
-    if turma["msgs_enviadas"] == 2:
-        texto1 += "\n\nLimite de 3 mensagens enviadas atingido. Não serão mais enviadas mensagens desta matéria."
+#     if turma["msgs_enviadas"] == 2:
+#         texto1 += "\n\nLimite de 3 mensagens enviadas atingido. Não serão mais enviadas mensagens desta matéria."
 
-    if turma["msgs_enviadas"] <= 2 and mandar_mensagem:
-        materias_de_interesse[departamento][materia][index]["msgs_enviadas"] += 1
-        mandarMensagem(texto1)
+#     if turma["msgs_enviadas"] <= 2 and mandar_mensagem:
+#         materias_de_interesse[departamento][materia][index]["msgs_enviadas"] += 1
+#         mandarMensagem(texto1)
 
-    else:
-        print("Limite de 3 mensagens excedido.")
+#     else:
+#         print("Limite de 3 mensagens excedido.")
 
-    if abrir_janela:
-        janela("Vaga Encontrada!", texto)
+#     if abrir_janela:
+#         janela("Vaga Encontrada!", texto)
     
-    print(f" >>{texto}")
+#     print(f" >>{texto}")
 # ----------------------------------- #
 
 
 # ----------------------------------- #
-def confirmarMatricula():
+def realizarMatricula():
     pass
 # ----------------------------------- #
 
@@ -130,6 +130,8 @@ botao = wait.until(
 )
 botao.click()
 
+print("[LOG] Login feito")
+
 # pular comunicados, se tiver
 while 1:
     try:
@@ -138,8 +140,9 @@ while 1:
             continuar.click()
             time.sleep(0.5)
     except NoSuchElementException as e:
-        print(e.msg)
+        # print(e.msg)
         break
+print("[LOG] Comunicados pulados")
 
 # aceitar cookies
 try:
@@ -147,9 +150,11 @@ try:
     if botao.text == "Ciente":
         botao.click()
         time.sleep(0.1)
+        print("[LOG] Cookies aceitos")
 
 except NoSuchElementException as e:
-    print(e.msg)
+    pass
+    # print(e.msg)
 
 # Ensino >
 menus = driver.find_elements(By.CLASS_NAME, "ThemeOfficeMainItem")
@@ -181,6 +186,7 @@ for menu in menus:
             break
     except NoSuchElementException:
         continue
+print("[LOG] Página de matrícula acessada")
 time.sleep(0.5)
 
 
@@ -193,7 +199,9 @@ time.sleep(0.5)
 for materia_de_interesse in materias_de_interesse.keys():
 
     nome_materia_interesse = materias_de_interesse[materia_de_interesse]["nome"]
+    print(f"[LOG] Verificando vagas para a matéria {nome_materia_interesse}...")
 
+    # Buscar matéria
     input = wait.until(
         EC.element_to_be_clickable((By.ID, "form:txtCodigo"))
     )
@@ -221,6 +229,7 @@ for materia_de_interesse in materias_de_interesse.keys():
             ))
 
             # iterar pelas turmas encontradas
+            tem_vagas = False
             try:
                 turmas = menu.find_elements(By.TAG_NAME, "tr")
                 for turma in turmas:
@@ -242,30 +251,33 @@ for materia_de_interesse in materias_de_interesse.keys():
                         # Verifica se a turma é desejada
                         for turma_de_interesse in turmas_de_interesse:
                             if texto == f"Turma {turma_de_interesse}":
-                                desejada = True
-
+                                desejada, tem_vagas = True, True
+                                break
                     if not desejada:
                         continue
+                    print("[LOG] Vagas encontradas em turma desejada!")
 
                     # Selecionar turma
                     botao = turma.find_element(By.CSS_SELECTOR, "a[title='Selecionar turma']")
                     botao.click()
-                    time.sleep(0.5)
-                    confirmarMatricula()
-                                
 
+                    #---
+                    #TO-DO: colocar confirmação se for pedido
+                    #---
+                    print("[LOG] Realizando matrícula...")
+                    realizarMatricula()
 
             except NoSuchElementException:
-                print(f"Sem turmas encontradas para {nome_materia_interesse}")
-
+                print(f"[LOG] Sem turmas encontradas para {nome_materia_interesse}")
+            if not tem_vagas:
+                print(f"[LOG] Não foram encontradas vagas em turmas desejadas para a matéria {nome_materia_interesse}")
 
         except NoSuchElementException as e:
             # print(e.msg)
             continue
 
-
-
-    time.sleep(5)
+print("[LOG] Loop concluído. Buscando novamente em ? segundos")
+time.sleep(5)
 
 
 
