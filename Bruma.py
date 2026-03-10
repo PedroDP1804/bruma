@@ -6,7 +6,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 #from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-# import os
+import os
 import time
 import ctypes
 # from twilio.rest import Client
@@ -30,6 +30,7 @@ usuario = env["sigaa_usuario"]
 senha = env["sigaa_senha"]
 mandar_mensagem = True if (env["mandar_mensagem"] == "sim") else False
 abrir_janela = True if (env["abrir_janela"] == "sim") else False
+tempo_pausa = int(env["tempo_pausa"])
 
 materias_de_interesse = {
         "ENE0177":  {
@@ -196,113 +197,98 @@ time.sleep(0.5)
 #                       Loop principal
 ## ========================================================= ##
 
-for materia_de_interesse in materias_de_interesse.keys():
+while True:
+    for materia_de_interesse in materias_de_interesse.keys():
 
-    nome_materia_interesse = materias_de_interesse[materia_de_interesse]["nome"]
-    print(f"[LOG] Verificando vagas para a matéria {nome_materia_interesse}...")
+        nome_materia_interesse = materias_de_interesse[materia_de_interesse]["nome"]
+        print(f"[LOG] Verificando vagas para a matéria {nome_materia_interesse}...")
 
-    # Buscar matéria
-    input = wait.until(
-        EC.element_to_be_clickable((By.ID, "form:txtCodigo"))
-    )
-    input.clear()
-    input.send_keys(materia_de_interesse)
+        # Buscar matéria
+        input = wait.until(
+            EC.element_to_be_clickable((By.ID, "form:txtCodigo"))
+        )
+        input.clear()
+        input.send_keys(materia_de_interesse)
 
-    botao = driver.find_element(By.ID, "form:buscar")
-    botao.click()
-    time.sleep(0.5)
+        botao = driver.find_element(By.ID, "form:buscar")
+        botao.click()
+        time.sleep(0.5)
 
-    menus = driver.find_elements(By.TAG_NAME, "tbody")
-    for menu in menus:
-        try:
-            # confirmar se é a matéria correta
-            botao = menu.find_element(By.TAG_NAME, "a")
-            if not (
-                (materia_de_interesse in botao.text) and (nome_materia_interesse in botao.text)
-            ):
-                continue
-
-            # turmas desejadas em formato ["01", "02"...]
-            turmas_de_interesse:list = list(map(
-                lambda m : m["turma"],
-                materias_de_interesse[materia_de_interesse]["turmas"]
-            ))
-
-            # iterar pelas turmas encontradas
-            tem_vagas = False
+        menus = driver.find_elements(By.TAG_NAME, "tbody")
+        for menu in menus:
             try:
-                turmas = menu.find_elements(By.TAG_NAME, "tr")
-                for turma in turmas:
+                # confirmar se é a matéria correta
+                botao = menu.find_element(By.TAG_NAME, "a")
+                if not (
+                    (materia_de_interesse in botao.text) and (nome_materia_interesse in botao.text)
+                ):
+                    continue
 
-                    # pular cabeçalhos de matérias
-                    if not ("turma" in turma.get_attribute("id")):
-                        continue
+                # turmas desejadas em formato ["01", "02"...]
+                turmas_de_interesse:list = list(map(
+                    lambda m : m["turma"],
+                    materias_de_interesse[materia_de_interesse]["turmas"]
+                ))
 
-                    # verificar turma
-                    desejada = False
-                    infos = turma.find_elements(By.TAG_NAME, "td")
-                    for info in infos:
+                # iterar pelas turmas encontradas
+                tem_vagas = False
+                try:
+                    turmas = menu.find_elements(By.TAG_NAME, "tr")
+                    for turma in turmas:
 
-                        # Pula campos que não sejam "Turma XX"
-                        texto = info.text
-                        if not "Turma" in texto:
+                        # pular cabeçalhos de matérias
+                        if not ("turma" in turma.get_attribute("id")):
                             continue
 
-                        # Verifica se a turma é desejada
-                        for turma_de_interesse in turmas_de_interesse:
-                            if texto == f"Turma {turma_de_interesse}":
-                                desejada, tem_vagas = True, True
-                                break
-                    if not desejada:
-                        continue
-                    print("[LOG] Vagas encontradas em turma desejada!")
+                        # verificar turma
+                        desejada = False
+                        infos = turma.find_elements(By.TAG_NAME, "td")
+                        for info in infos:
 
-                    # Selecionar turma
-                    botao = turma.find_element(By.CSS_SELECTOR, "a[title='Selecionar turma']")
-                    botao.click()
+                            # Pula campos que não sejam "Turma XX"
+                            texto = info.text
+                            if not "Turma" in texto:
+                                continue
 
-                    #---
-                    #TO-DO: colocar confirmação se for pedido
-                    #---
-                    print("[LOG] Realizando matrícula...")
-                    realizarMatricula()
+                            # Verifica se a turma é desejada
+                            for turma_de_interesse in turmas_de_interesse:
+                                if texto == f"Turma {turma_de_interesse}":
+                                    desejada, tem_vagas = True, True
+                                    break
+                        if not desejada:
+                            continue
+                        print("[LOG] Vagas encontradas em turma desejada!")
 
-            except NoSuchElementException:
-                print(f"[LOG] Sem turmas encontradas para {nome_materia_interesse}")
-            if not tem_vagas:
-                print(f"[LOG] Não foram encontradas vagas em turmas desejadas para a matéria {nome_materia_interesse}")
+                        # Selecionar turma
+                        botao = turma.find_element(By.CSS_SELECTOR, "a[title='Selecionar turma']")
+                        botao.click()
 
-        except NoSuchElementException as e:
-            # print(e.msg)
-            continue
+                        #---
+                        #TO-DO: colocar confirmação se for pedido
+                        #---
+                        print("[LOG] Realizando matrícula...")
+                        realizarMatricula()
 
-print("[LOG] Loop concluído. Buscando novamente em ? segundos")
-time.sleep(5)
+                except NoSuchElementException:
+                    print(f"[LOG] Sem turmas encontradas para {nome_materia_interesse}")
+                if not tem_vagas:
+                    print(f"[LOG] Não foram encontradas vagas em turmas desejadas para a matéria {nome_materia_interesse}")
 
+            except NoSuchElementException as e:
+                # print(e.msg)
+                continue
 
-
-
-# janela("Sucesso!", "Foi caralho!!!")
-
-
-
-# a = driver.find_element(By.ID, "cmSubMenuID3")
-# opcoes = a.find_elements(By.TAG_NAME, "tr")
-# for opcao in opcoes:
-#     botao = opcao.find_element(By.CLASS_NAME, "ThemeOfficeMenuItemText")
-#     if botao.get_attribute("textContent") == "Realizar Matrícula":
-#         driver.execute_script("arguments[0].click();", opcao)
-# time.sleep(5)
-
-
-
-
-
-
-
-
-
-
+    print(f"[LOG] Loop concluído. Buscando novamente em {tempo_pausa} segundos")
+    print("\nPressione Ctrl + C para encerrar o programa\n")
+    try:
+        time.sleep(tempo_pausa)
+        os.system("cls") # limpar terminal
+    except KeyboardInterrupt:
+        print("[LOG] Encerrando o programa...")
+        driver.quit()
+        print("[LOG] Programa finalizado.")
+        break
+        
 
 
 
