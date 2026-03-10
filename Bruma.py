@@ -100,6 +100,12 @@ def notificar(departamento, materia, index):
 # ----------------------------------- #
 
 
+# ----------------------------------- #
+def confirmarMatricula():
+    pass
+# ----------------------------------- #
+
+
 
 
 ## ========================================================= ##
@@ -178,7 +184,15 @@ for menu in menus:
 time.sleep(0.5)
 
 
+
+
+## ========================================================= ##
+#                       Loop principal
+## ========================================================= ##
+
 for materia_de_interesse in materias_de_interesse.keys():
+
+    nome_materia_interesse = materias_de_interesse[materia_de_interesse]["nome"]
 
     input = wait.until(
         EC.element_to_be_clickable((By.ID, "form:txtCodigo"))
@@ -193,15 +207,60 @@ for materia_de_interesse in materias_de_interesse.keys():
     menus = driver.find_elements(By.TAG_NAME, "tbody")
     for menu in menus:
         try:
+            # confirmar se é a matéria correta
             botao = menu.find_element(By.TAG_NAME, "a")
-            if (materia_de_interesse in botao.text) and (materias_de_interesse[materia_de_interesse]["nome"] in botao.text):
-                janela("oi","materia encontrada!") # TO-DO: Trocar pra print
+            if not (
+                (materia_de_interesse in botao.text) and (nome_materia_interesse in botao.text)
+            ):
+                continue
 
-            # -----
-            # TO-DO: verificar turmas
-            # -----
+            # turmas desejadas em formato ["01", "02"...]
+            turmas_de_interesse:list = list(map(
+                lambda m : m["turma"],
+                materias_de_interesse[materia_de_interesse]["turmas"]
+            ))
 
-        except NoSuchElementException:
+            # iterar pelas turmas encontradas
+            try:
+                turmas = menu.find_elements(By.TAG_NAME, "tr")
+                for turma in turmas:
+
+                    # pular cabeçalhos de matérias
+                    if not ("turma" in turma.get_attribute("id")):
+                        continue
+
+                    # verificar turma
+                    desejada = False
+                    infos = turma.find_elements(By.TAG_NAME, "td")
+                    for info in infos:
+
+                        # Pula campos que não sejam "Turma XX"
+                        texto = info.text
+                        if not "Turma" in texto:
+                            continue
+
+                        # Verifica se a turma é desejada
+                        for turma_de_interesse in turmas_de_interesse:
+                            if texto == f"Turma {turma_de_interesse}":
+                                desejada = True
+
+                    if not desejada:
+                        continue
+
+                    # Selecionar turma
+                    botao = turma.find_element(By.CSS_SELECTOR, "a[title='Selecionar turma']")
+                    botao.click()
+                    time.sleep(0.5)
+                    confirmarMatricula()
+                                
+
+
+            except NoSuchElementException:
+                print(f"Sem turmas encontradas para {nome_materia_interesse}")
+
+
+        except NoSuchElementException as e:
+            # print(e.msg)
             continue
 
 
