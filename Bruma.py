@@ -81,6 +81,11 @@ def janela(titulo:str, texto:str):
     ctypes.windll.user32.MessageBoxW(0, texto, titulo, 0)
 # ----------------------------------- #
 
+# ----------------------------------- #
+def confirmar(titulo:str, texto:str)->bool:
+    return ctypes.windll.user32.MessageBoxW(0, texto, titulo, 4 | 32) == 6
+# ----------------------------------- #
+
 
 # ----------------------------------- #
 # def notificar(departamento, materia, index):
@@ -272,6 +277,7 @@ while True:
                         #---
                         #TO-DO: colocar confirmação se for pedido
                         #---
+                        
                         print("[LOG] Realizando matrícula...")
                         realizarMatricula()
 
